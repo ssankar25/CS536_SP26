@@ -19,6 +19,18 @@ public final class TestPrograms {
 
     System.out.println("== test_netid ==");
     System.out.print(PrettyPrinter.pretty(test3()));
+
+    System.out.println("== test4 ==");
+    System.out.print(PrettyPrinter.pretty(test4()));
+
+    System.out.println("== test5 ==");
+    System.out.print(PrettyPrinter.pretty(test5()));
+
+    System.out.println("== test6 ==");
+    System.out.print(PrettyPrinter.pretty(test6()));
+
+    System.out.println("== test7 ==");
+    System.out.print(PrettyPrinter.pretty(test7()));
   }
 
   /**
@@ -239,5 +251,184 @@ public static Ast.Program test3() {
   return new Ast.Program(Arrays.<Ast.Decl>asList(factDecl, mainDecl));
 
 }
+
+  /**
+   * (Corner cases: uninitialized global, bool global, multi-arg call)
+   *
+   * g: int;
+   * flag: bool = true;
+   *
+   * fn add3(a: int, b: int, c: int): int {
+   *   return a + b + c;
+   * }
+   *
+   * fn main(): int {
+   *   x: int = add3(1, 2, g);
+   *   if (flag) {
+   *     output(x);
+   *   }
+   *   else {
+   *     output(0);
+   *   }
+   *   return 0;
+   * }
+   */
+  public static Ast.Program test4() {
+    Ast.GlobalVarDecl gDecl = new Ast.GlobalVarDecl("g", Ast.Type.INT, null);
+    Ast.GlobalVarDecl flagDecl = new Ast.GlobalVarDecl("flag", Ast.Type.BOOL, new Expr.BoolLit(true));
+
+    Ast.Param aParam = new Ast.Param("a", Ast.Type.INT);
+    Ast.Param bParam = new Ast.Param("b", Ast.Type.INT);
+    Ast.Param cParam = new Ast.Param("c", Ast.Type.INT);
+
+    Expr add3Expr =
+      new Expr.Binary(
+        new Expr.Binary(new Expr.Var("a"), Expr.BinOp.ADD, new Expr.Var("b")),
+        Expr.BinOp.ADD,
+        new Expr.Var("c")
+      );
+    Stmt.Block add3Body = new Stmt.Block(Arrays.asList(new Stmt.Return(add3Expr)));
+    Ast.FunDecl add3Decl = new Ast.FunDecl("add3", Arrays.asList(aParam, bParam, cParam), Ast.Type.INT, add3Body);
+
+    Expr.Call callAdd3 = new Expr.Call("add3", Arrays.asList(new Expr.IntLit(1), new Expr.IntLit(2), new Expr.Var("g")));
+    Stmt.VarDef xDef = new Stmt.VarDef("x", Ast.Type.INT, callAdd3);
+
+    Stmt.Block thenBlk = new Stmt.Block(Arrays.asList(
+      new Stmt.ExprStmt(new Expr.Call("output", Arrays.asList(new Expr.Var("x"))))
+    ));
+    Stmt.Block elseBlk = new Stmt.Block(Arrays.asList(
+      new Stmt.ExprStmt(new Expr.Call("output", Arrays.asList(new Expr.IntLit(0))))
+    ));
+    Stmt.If ifStmt = new Stmt.If(new Expr.Var("flag"), thenBlk, elseBlk);
+
+    Stmt.Return ret0 = new Stmt.Return(new Expr.IntLit(0));
+    Stmt.Block mainBody = new Stmt.Block(Arrays.asList(xDef, ifStmt, ret0));
+    Ast.FunDecl mainDecl = new Ast.FunDecl("main", Arrays.<Ast.Param>asList(), Ast.Type.INT, mainBody);
+
+    return new Ast.Program(Arrays.<Ast.Decl>asList(gDecl, flagDecl, add3Decl, mainDecl));
+  }
+
+  /**
+   * (Corner cases: nested function, call with 0 args, while with single-stmt body)
+   *
+   * fn counter(n: int): int {
+   *   x: int = 0;
+   *
+   *   fn inc(): int {
+   *     x = x + 1;
+   *     return x;
+   *   }
+   *
+   *   while (x < n)
+   *     x = inc();
+   *
+   *   return x;
+   * }
+   *
+   * fn main(): int {
+   *   r: int = counter(3);
+   *   output(r);
+   *   return 0;
+   * }
+   */
+  public static Ast.Program test5() {
+    Ast.Param nParam = new Ast.Param("n", Ast.Type.INT);
+
+    Stmt.VarDef xDef = new Stmt.VarDef("x", Ast.Type.INT, new Expr.IntLit(0));
+
+    Expr xPlus1 = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.ADD, new Expr.IntLit(1));
+    Stmt.Assign incAssign = new Stmt.Assign("x", xPlus1);
+    Stmt.Return incReturn = new Stmt.Return(new Expr.Var("x"));
+    Stmt.Block incBody = new Stmt.Block(Arrays.asList(incAssign, incReturn));
+    Ast.FunDecl incDecl = new Ast.FunDecl("inc", Arrays.<Ast.Param>asList(), Ast.Type.INT, incBody);
+    Stmt.FunDef incDef = new Stmt.FunDef(incDecl);
+
+    Expr whileCond = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.LT, new Expr.Var("n"));
+    Expr.Call callInc = new Expr.Call("inc", Arrays.<Expr>asList());
+    Stmt.Assign whileBody = new Stmt.Assign("x", callInc);
+    Stmt.While whileStmt = new Stmt.While(whileCond, whileBody);
+
+    Stmt.Return retX = new Stmt.Return(new Expr.Var("x"));
+    Stmt.Block counterBody = new Stmt.Block(Arrays.asList(xDef, incDef, whileStmt, retX));
+    Ast.FunDecl counterDecl = new Ast.FunDecl("counter", Arrays.asList(nParam), Ast.Type.INT, counterBody);
+
+    Expr.Call callCounter = new Expr.Call("counter", Arrays.asList(new Expr.IntLit(3)));
+    Stmt.VarDef rDef = new Stmt.VarDef("r", Ast.Type.INT, callCounter);
+    Stmt.ExprStmt outR = new Stmt.ExprStmt(new Expr.Call("output", Arrays.asList(new Expr.Var("r"))));
+    Stmt.Return ret0 = new Stmt.Return(new Expr.IntLit(0));
+    Stmt.Block mainBody = new Stmt.Block(Arrays.asList(rDef, outR, ret0));
+    Ast.FunDecl mainDecl = new Ast.FunDecl("main", Arrays.<Ast.Param>asList(), Ast.Type.INT, mainBody);
+
+    return new Ast.Program(Arrays.<Ast.Decl>asList(counterDecl, mainDecl));
+  }
+
+  /**
+   * (Corner cases: bool params/locals, standalone block stmt, if with non-block branches)
+   *
+   * fn logic(a: bool, b: bool): bool {
+   *   return a && !b || b;
+   * }
+   *
+   * fn main(): int {
+   *   t: bool = true;
+   *   f: bool = false;
+   *   {
+   *     z: bool = logic(t, f);
+   *     if (z)
+   *       output(1);
+   *     else
+   *       output(0);
+   *   }
+   *   return 0;
+   * }
+   */
+  public static Ast.Program test6() {
+    Ast.Param aParam = new Ast.Param("a", Ast.Type.BOOL);
+    Ast.Param bParam = new Ast.Param("b", Ast.Type.BOOL);
+
+    Expr notB = new Expr.Unary(Expr.UnOp.NOT, new Expr.Var("b"));
+    Expr aAndNotB = new Expr.Binary(new Expr.Var("a"), Expr.BinOp.LAND, notB);
+    Expr logicExpr = new Expr.Binary(aAndNotB, Expr.BinOp.LOR, new Expr.Var("b"));
+    Stmt.Block logicBody = new Stmt.Block(Arrays.asList(new Stmt.Return(logicExpr)));
+    Ast.FunDecl logicDecl = new Ast.FunDecl("logic", Arrays.asList(aParam, bParam), Ast.Type.BOOL, logicBody);
+
+    Stmt.VarDef tDef = new Stmt.VarDef("t", Ast.Type.BOOL, new Expr.BoolLit(true));
+    Stmt.VarDef fDef = new Stmt.VarDef("f", Ast.Type.BOOL, new Expr.BoolLit(false));
+
+    Expr.Call callLogic = new Expr.Call("logic", Arrays.asList(new Expr.Var("t"), new Expr.Var("f")));
+    Stmt.VarDef zDef = new Stmt.VarDef("z", Ast.Type.BOOL, callLogic);
+
+    Stmt.ExprStmt out1 = new Stmt.ExprStmt(new Expr.Call("output", Arrays.asList(new Expr.IntLit(1))));
+    Stmt.ExprStmt out0 = new Stmt.ExprStmt(new Expr.Call("output", Arrays.asList(new Expr.IntLit(0))));
+    Stmt.If ifZ = new Stmt.If(new Expr.Var("z"), out1, out0);
+
+    Stmt.Block innerBlock = new Stmt.Block(Arrays.asList(zDef, ifZ));
+
+    Stmt.Return ret0 = new Stmt.Return(new Expr.IntLit(0));
+    Stmt.Block mainBody = new Stmt.Block(Arrays.asList(tDef, fDef, innerBlock, ret0));
+    Ast.FunDecl mainDecl = new Ast.FunDecl("main", Arrays.<Ast.Param>asList(), Ast.Type.INT, mainBody);
+
+    return new Ast.Program(Arrays.<Ast.Decl>asList(logicDecl, mainDecl));
+  }
+
+  /**
+   * (Corner cases: nested calls, call with 0 args, ExprStmt-only main body)
+   *
+   * fn main(): int {
+   *   output(input());
+   *   return 0;
+   * }
+   */
+  public static Ast.Program test7() {
+    Expr.Call callInput = new Expr.Call("input", Arrays.<Expr>asList());
+    Expr.Call callOutput = new Expr.Call("output", Arrays.asList(callInput));
+    Stmt.ExprStmt outInput = new Stmt.ExprStmt(callOutput);
+
+    Stmt.Return ret0 = new Stmt.Return(new Expr.IntLit(0));
+    Stmt.Block mainBody = new Stmt.Block(Arrays.asList(outInput, ret0));
+    Ast.FunDecl mainDecl = new Ast.FunDecl("main", Arrays.<Ast.Param>asList(), Ast.Type.INT, mainBody);
+
+    return new Ast.Program(Arrays.<Ast.Decl>asList(mainDecl));
+  }
 
 }
