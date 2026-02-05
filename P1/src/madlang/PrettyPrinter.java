@@ -186,21 +186,64 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         return e.name;
     }
 
+    // Precedence logic -> Grab precedence from either binary or unary, or default to high value since we only
+    // insert parentheses when child < parent
+    private static int precedenceOf(Expr e) {
+        if (e instanceof Expr.Binary bin) return bin.op.precedence();
+        if (e instanceof Expr.Unary un)  return un.op.precedence();
+        return 100; // IntLit, BoolLit, Var, and Call get "high" precedence so there are no parentheses
+    }
+
+    // Used to insert parentheses around an expression after checking the precedence
+    // Define the "parent" as the operator that "contains" this expression
+    // The "child" is then the predence of the current expression we are trying to print
+    // We insert a parentheses around the child when it has LOWER precedence than the parent, because
+    // this means the AST bound the lower-precedence operator together, meaning parentheses need to 
+    // be around these
+    // The other case where we insert parentheses is when both the parent and child are of the same
+    // precedence, but the expression passed in is on the right in its parent expression.
+    // This means parentheses needs to be around this right expression since it is lower prec by default
+    private String printExpr(Expr e, int parentPrec, boolean isRightChild) {
+        // Recursively build parentheses based on precedence
+        String childString = e.accept(this);
+        // childPrec = Precedence of expression passed in
+        int childPrec = precedenceOf(e);
+
+        // Case 1: Insert parenthese when expression passed in has lower precedence than its parent
+        boolean needParens = childPrec < parentPrec;
+
+        // Case 2: If the child is a binary expression at the SAME precedence, and it's on the right of its
+        // parent expression, parentheses are needed to ensure this expression is evaluated first as in the AST.
+        if (!needParens && isRightChild && (e instanceof Expr.Binary) && childPrec == parentPrec) {
+            needParens = true;
+        }
+
+        return needParens ? "(" + childString + ")" : childString;
+    }
+
     @Override
     public String visitUnaryExpr(Expr.Unary e) {
-        String inner = e.expr.accept(this);
-
-        // If binary expression, then need to include the parentheses without precedence checking
-        boolean needParens = e.expr instanceof Expr.Binary;
-        return e.op.toSource() + (needParens ? "(" + inner + ")" : inner);
+        // Unary binds tighter than all binary ops, so parenthesize when the expression
+        // for the operator has a lower precedence (Ex. -(a + b))
+        String inner = printExpr(e.expr, e.op.precedence(), false);
+        return e.op.toSource() + inner;
     }
 
     @Override
     public String visitBinaryExpr(Expr.Binary e) {
-        // naive parentheses-all approach (safe, not minimal)
-        String l = e.left.accept(this);
-        String r = e.right.accept(this);
-        return "(" + l + " " + e.op.toSource() + " " + r + ")";
+
+        // "Parent" precedence that will be passed in for each left and right subtree
+        int parentPrec = e.op.precedence();
+
+        // Left child: parentheses only if lower precedence than parent
+        String l = printExpr(e.left, parentPrec, false);
+
+        // Right child: parentheses if lower precedence than parent OR same precedence
+        String r = printExpr(e.right, parentPrec, true);
+
+        // Recursive join for final binary expression
+        // No parentheses are added around the root expression
+        return l + " " + e.op.toSource() + " " + r;
     }
 
     @Override 
