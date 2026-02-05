@@ -11,9 +11,12 @@ import java.util.*;
  */
 public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
 
-    // Contains final, pretty-printed version of AST
+    // Contains final, pretty-printed version of the MadLang AST
     private final StringBuilder out = new StringBuilder();
-    private int indent = 0; // Increment to indent further for blocks
+
+    // Indentation level for the current block, which is incremented and 
+    // decremented according to the current scope
+    private int indent = 0;
 
     private PrettyPrinter() {}
 
@@ -29,15 +32,27 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         return p.out.toString();
     }
 
+    /**
+     * Goes through each declaration in the program and prints them.
+     * 
+     * @param program the AST of a whole MadLang program
+     */
     private void printProgram(Ast.Program program) {
-        // Program = Collection of declarations TODO: Chk this comment
+        // Program = Collection of declarations
         for (int i = 0; i < program.decls.size(); i++) {
             printDecl(program.decls.get(i));
         }
     }
 
+    /**
+     * Based on whether the declaration is a global variable declaration or 
+     * a function declaration, this helper pretty-prints the declaration.
+     * 
+     * @param decl The current declaration in the AST being processed.
+     */
     private void printDecl(Ast.Decl decl) {
-        // TODO: Check if this can be done without checking instaceof for each
+        // Check what type of declaration decl is since the Ast class
+        // does not have a visitor interface
         if (decl instanceof Ast.GlobalVarDecl globalDecl) {
             printIndent();
 
@@ -47,6 +62,7 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
                 // name: type = expr
                 out.append(" = ").append(globalDecl.initOrNull.accept(this));
             }
+
             out.append(";\n");
         }
         else if (decl instanceof Ast.FunDecl funDecl) {
@@ -57,6 +73,12 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         }
     }
 
+    /**
+     * Handles the printing of a function declaration. This is done through 
+     * this helper method as there is no visitor interface in the Ast class.
+     * 
+     * @param funDecl The function declaration being printed.
+     */
     private void printFunDecl(Ast.FunDecl funDecl) {
         printIndent();
 
@@ -68,16 +90,29 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
             out.append(param.name).append(": ").append(param.type.toSource());
             if (i < funDecl.params.size() - 1) out.append(", ");
         }
+
         // fn name(params): {
         out.append("): ").append(funDecl.returnType.toSource()).append(" ");
         printBlock(funDecl.body, false);
     }
 
+    /**
+     * Helper method to print the correct number of spaces based on
+     * the current indentation level
+     */
     private void printIndent() {
         for (int i = 0; i < indent; i++) out.append("  ");
     }
 
-    // LeadingIndent flag passed in to take care of in-line blocks vs. standalone blocks
+    /**
+     * Helper method that pretty-prints a block of statements. A leading indent is added
+     * based on the flag passed in, which is true for standalone blocks in the visitBlockStmt
+     * visitor. Otherwise, in other visitors with in-line blocks (ex. If), there is no leading
+     * indent.
+     * 
+     * @param b The block statement being pretty-printed.
+     * @param leadingIndent Boolean indicating whether to have an indent before the first brace.
+     */
     private void printBlock(Stmt.Block b, boolean leadingIndent) {
         if (leadingIndent) printIndent();
         out.append("{\n");
@@ -88,8 +123,14 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         out.append("}\n");
     }
 
-    // Prints as a block if the statement is a block, otherwise it is a single statement
-    // printed on the next line
+    /**
+     * Helper method used to handle printing the body of an If and While loop, which may
+     * or may not be a block of statements. If it is a block, then we print the block.
+     * Otherwise, it is a single statement on the next line, so we call the corresponding
+     * visitor.
+     * 
+     * @param body The statement being pretty-printed
+     */
     private void printBody(Stmt body) {
         if (body instanceof Stmt.Block b) {
             // In-line block statement
@@ -102,20 +143,46 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         }
     }
 
+
+    /////////////////////
+    /// STMT VISITORS ///
+    /////////////////////
+
+    // Stmt visitors append directly to the out stringbuilder, so they
+    // all return null.
+
+    /**
+     * Pretty-print visitor for the Stmt.Block type.
+     * 
+     * @param s The Stmt.Block being visited.
+     * @return null
+     */
     @Override
     public String visitBlockStmt(Stmt.Block s) {
         printBlock(s, true);
         return null;
     }
 
+    /**
+     * Pretty-print visitor for the Stmt.Return type.
+     * 
+     * @param s The Stmt.Return being visited.
+     * @return null
+     */
     @Override
     public String visitReturnStmt(Stmt.Return s) {
         printIndent();
-        // return;\n
+        // return <expr>;\n
         out.append("return ").append(s.value.accept(this)).append(";\n");
         return null;
     }
 
+    /**
+     * Pretty-print visitor for the Stmt.VarDef type.
+     * 
+     * @param s The Stmt.VarDef being visited.
+     * @return null
+     */
     @Override 
     public String visitVarDefStmt(Stmt.VarDef s) { 
         printIndent();
@@ -127,13 +194,24 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         return null;
     }
 
+    /**
+     * Pretty-print visitor for the Stmt.FunDef type.
+     * 
+     * @param s The Stmt.FunDef being visited.
+     * @return null
+     */
     @Override 
     public String visitFunDefStmt(Stmt.FunDef s) { 
-        // printIndent is in FunDecl (by convention, any printIndent is in the innermost object)
         printFunDecl(s.fun);
         return null;
     }
 
+    /**
+     * Pretty-print visitor for the Stmt.Assign type.
+     * 
+     * @param s The Stmt.Assign being visited.
+     * @return null
+     */
     @Override 
     public String visitAssignStmt(Stmt.Assign s) { 
         printIndent();
@@ -145,6 +223,12 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         return null;
     }
 
+    /**
+     * Pretty-print visitor for the Stmt.ExprStmt type.
+     * 
+     * @param s The Stmt.ExprStmt being visited.
+     * @return null
+     */
     @Override
     public String visitExprStmt(Stmt.ExprStmt s) {
         printIndent();
@@ -152,6 +236,12 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         return null;
     }
 
+    /**
+     * Pretty-print visitor for the Stmt.If type.
+     * 
+     * @param s The Stmt.If being visited.
+     * @return null
+     */
     @Override
     public String visitIfStmt(Stmt.If s) { 
         printIndent();
@@ -165,7 +255,13 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         }
         return null;
     }
-    
+
+    /**
+     * Pretty-print visitor for the Stmt.While type.
+     * 
+     * @param s The Stmt.While being visited.
+     * @return null
+     */
     @Override
     public String visitWhileStmt(Stmt.While s)   { 
         printIndent();
@@ -174,42 +270,51 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         return null;
     }
 
-    // Expression visitors return strings so that they can be used in the Statement visitors
+    //////////////////////////
+    /// PRECEDENCE HELPERS ///
+    //////////////////////////
 
-    @Override
-    public String visitIntLitExpr(Expr.IntLit e) {
-        return Integer.toString(e.value);
-    }
-
-    @Override
-    public String visitVarExpr(Expr.Var e) {
-        return e.name;
-    }
-
-    // Precedence logic -> Grab precedence from either binary or unary, or default to high value since we only
-    // insert parentheses when child < parent
+    /**
+     * Helper method that gets the precedence of the passed-in expression if it is either binary or unary.
+     * If the expression is not binary or unary, then we default to a high precedence (100) because we do
+     * NOT want to insert parentheses around literals, and we do insert parentheses for low-precedence expressions.
+     * 
+     * @param e The expression we are getting the precedence of.
+     * @return The precedence of e if it is a unary or binary expression, otherwise 100 (a high precedence).
+     */
     private static int precedenceOf(Expr e) {
         if (e instanceof Expr.Binary bin) return bin.op.precedence();
         if (e instanceof Expr.Unary un)  return un.op.precedence();
         return 100; // IntLit, BoolLit, Var, and Call get "high" precedence so there are no parentheses
     }
 
-    // Used to insert parentheses around an expression after checking the precedence
-    // Define the "parent" as the operator that "contains" this expression
-    // The "child" is then the predence of the current expression we are trying to print
-    // We insert a parentheses around the child when it has LOWER precedence than the parent, because
-    // this means the AST bound the lower-precedence operator together, meaning parentheses need to 
-    // be around these
-    // The other case where we insert parentheses is when both the parent and child are of the same
-    // precedence, but the expression passed in is on the right in its parent expression.
-    // This means parentheses needs to be around this right expression since it is lower prec by default
+    /**
+     * Helper method that first gets the correct String for the passed-in child expression
+     * by recursively calling the visitor, and then inserting parentheses around the child
+     * based on its precedence. The 2 cases for inserting parentheses are outlined below.
+     * 
+     * "Parent" - Expression that "contains" the one passed in (parent node in the AST).
+     * 
+     * Case 1: Insert a parentheses around the child when it has LOWER precedence than the parent, because
+     * this means the AST bound the lower-precedence operator together, meaning parentheses need to 
+     * be around these.
+     * 
+     * Case 2: When both the parent and child are of the same precedence, but the expression passed in 
+     * is on the right in its parent expression. This means parentheses needs to be around this right 
+     * expression since it is lower prec by default
+     * 
+     * @param e The "child" expression passed in that is being determined for parentheses-wrapping
+     * @param parentPrec The precedence of the "parent" expression, as defined above.
+     * @param isRightChild Boolean indicating whether e is on the right of the parent expression, needed for case 2.
+     * @return The final pretty-printed string of the child expression with or without parentheses based on precedence.
+     */
     private String printExpr(Expr e, int parentPrec, boolean isRightChild) {
         // Recursively build parentheses based on precedence
         String childString = e.accept(this);
         // childPrec = Precedence of expression passed in
         int childPrec = precedenceOf(e);
 
-        // Case 1: Insert parenthese when expression passed in has lower precedence than its parent
+        // Case 1: Insert parentheses when expression passed in has lower precedence than its parent
         boolean needParens = childPrec < parentPrec;
 
         // Case 2: If the child is a binary expression at the SAME precedence, and it's on the right of its
@@ -221,14 +326,38 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         return needParens ? "(" + childString + ")" : childString;
     }
 
+    /////////////////////
+    /// EXPR VISITORS ///
+    /////////////////////
+
+    // Expression visitors return strings so they can be appended on in the statement
+    // visitors, as statements contain expressions.
+
+    /**
+     * Pretty-print visitor for the Expr.Unary type.
+     * 
+     * Inserts parentheses around the unary based on its precedence.
+     * 
+     * @param e The Expr.Unary being visited.
+     * @return The pretty-printed expression.
+     */
     @Override
     public String visitUnaryExpr(Expr.Unary e) {
-        // Unary binds tighter than all binary ops, so parenthesize when the expression
-        // for the operator has a lower precedence (Ex. -(a + b))
+        // Unary binds tighter than all binary ops, so parenthesize when the 
+        // expression for the operator has a lower precedence (Ex. -(a + b))
         String inner = printExpr(e.expr, e.op.precedence(), false);
         return e.op.toSource() + inner;
     }
 
+    /**
+     * Pretty-print visitor for the Expr.Binary type.
+     * 
+     * Inserts parentheses around each child expression of
+     * the binary statement, and then joins the two halves together.
+     * 
+     * @param e The Expr.Binary being visited.
+     * @return The pretty-printed expression.
+     */
     @Override
     public String visitBinaryExpr(Expr.Binary e) {
 
@@ -246,11 +375,45 @@ public final class PrettyPrinter implements Expr.Visitor<String>, Stmt.Visitor<S
         return l + " " + e.op.toSource() + " " + r;
     }
 
+    /**
+     * Pretty-print visitor for the Expr.IntLit type.
+     * 
+     * @param e The Expr.IntLit being visited.
+     * @return The pretty-printed expression.
+     */
+    @Override
+    public String visitIntLitExpr(Expr.IntLit e) {
+        return Integer.toString(e.value);
+    }
+
+    /**
+     * Pretty-print visitor for the Expr.Var type.
+     * 
+     * @param e The Expr.Var being visited.
+     * @return The pretty-printed expression.
+     */
+    @Override
+    public String visitVarExpr(Expr.Var e) {
+        return e.name;
+    }
+
+    /**
+     * Pretty-print visitor for the Expr.BoolLit type.
+     * 
+     * @param e The Expr.BoolLit being visited.
+     * @return The pretty-printed expression.
+     */
     @Override 
     public String visitBoolLitExpr(Expr.BoolLit e) {
         return Boolean.toString(e.value);
     }
 
+    /**
+     * Pretty-print visitor for the Expr.Call type.
+     * 
+     * @param e The Expr.Call being visited.
+     * @return The pretty-printed expression.
+     */
     @Override
     public String visitCallExpr(Expr.Call e) {
         StringBuilder sb = new StringBuilder();

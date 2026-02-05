@@ -85,7 +85,34 @@ public final class TestPrograms {
   }
 
   /**
-   * TODO: hard-code the AST for the example in README.md.
+   * Hard-coded AST for the example in README.md.
+   * 
+   * Example:
+   * 
+   * fn Outer(x: int): int {
+   *   r: int = 0;
+   *   i: int = 0;
+   * 
+   *   fn Inner(y: int): int {
+   *     r = r + 10;
+   *     return y * y;
+   *   }
+   * 
+   *   while (i < x) {
+   *     if (i % 2 == 0) {
+   *       r = r + Inner(i);
+   *     }
+   *     i = i + 1;
+   *   }
+   *   return r;
+   * }
+   * 
+   * fn main(): int {
+   *   r: int = Outer(5);
+   *   output(r);
+   *   return 0;
+   * }
+   * 
    */
   public static Ast.Program test2() {
 
@@ -178,82 +205,89 @@ public final class TestPrograms {
     return new Ast.Program(Arrays.<Ast.Decl>asList(outerDecl, mainDecl));
   }
 
-/**
- * TODO: Choose a program and hard-code its AST as a test case.
- *
- * Requirements:
- * 1. The constructed AST must represent a valid MadLang program.
- * 2. The program must contain your own NetID as an identifier
- *    (e.g., variable name, function name, or parameter name).
- * 3. Both the source program and its pretty-printed output should
- *    contain no more than 20 lines of code.
- * 
- * fn fact(x: int) int {
- *   if (x < 0)
- *     return -1;
- *   if (x == 0) {
- *     return 1;
- *   }
- *   else {
- *     {
- *       return x * fact(x - 1);
- *     }
- *   }
- * }
- * 
- * fn main(): int {
- *   sankar5: int = fact(123);
- *   output(sankar5);
- *   return 0;
- * }
- * 
- * TODO: Need to test multiple parameters, uninitialized global variable declaration, standalone block, multiple params in Expr.Call (function call w multiple params)
- */
-public static Ast.Program test3() {
+  /**
+   * My hard-coded AST for a program that calculates the factorial.
+   * 
+   * This includes some corner cases for how bodies of if/else statements can
+   * be formatted, which include as not a block at all, as a block, or within 
+   * a standalone block.
+   * 
+   * The requirements below are met.
+   *
+   * Requirements:
+   * 1. The constructed AST must represent a valid MadLang program.
+   * 2. The program must contain your own NetID as an identifier
+   *    (e.g., variable name, function name, or parameter name).
+   * 3. Both the source program and its pretty-printed output should
+   *    contain no more than 20 lines of code.
+   * 
+   * Program:
+   * 
+   * fn fact(x: int): int {
+   *   if (x < 0)
+   *     return -1;
+   *   if (x == 0) {
+   *     return 1;
+   *   }
+   *   else {
+   *     {
+   *       return x * fact(x - 1);
+   *     }
+   *   }
+   * }
+   * 
+   * fn main(): int {
+   *   sankar5: int = fact(123);
+   *   output(sankar5);
+   *   return 0;
+   * }
+   * 
+   */
+  public static Ast.Program test3() {
 
-  Ast.Param xParam = new Ast.Param("x", Ast.Type.INT);
+    Ast.Param xParam = new Ast.Param("x", Ast.Type.INT);
 
-  // if (x < 0) return -1;
-  Stmt.Return negOneReturn = new Stmt.Return(new Expr.Unary(Expr.UnOp.NEG, new Expr.IntLit(1)));
-  Expr.Binary firstIfCond = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.LT, new Expr.IntLit(0));
-  Stmt.If firstIf = new Stmt.If(firstIfCond, negOneReturn, null);
+    // if (x < 0) return -1;
+    Stmt.Return negOneReturn = new Stmt.Return(new Expr.Unary(Expr.UnOp.NEG, new Expr.IntLit(1)));
+    Expr.Binary firstIfCond = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.LT, new Expr.IntLit(0));
+    Stmt.If firstIf = new Stmt.If(firstIfCond, negOneReturn, null);
 
-  // return x * fact(x - 1); 
-  Expr.Binary xMinusOne = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.SUB, new Expr.IntLit(1));
-  Expr.Call callFactRecur = new Expr.Call("fact", Arrays.asList(xMinusOne));
-  Expr.Binary recurCall = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.MUL, callFactRecur);
-  Stmt.Return recurReturn = new Stmt.Return(recurCall);
+    // return x * fact(x - 1); 
+    Expr.Binary xMinusOne = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.SUB, new Expr.IntLit(1));
+    Expr.Call callFactRecur = new Expr.Call("fact", Arrays.asList(xMinusOne));
+    Expr.Binary recurCall = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.MUL, callFactRecur);
+    Stmt.Return recurReturn = new Stmt.Return(recurCall);
 
-  // else {...}
-  Stmt.Block elseReturnBlock = new Stmt.Block(Arrays.asList(new Stmt.Block(Arrays.asList(recurReturn)))); // Multiple levels of blocks
+    // else {...}
+    Stmt.Block elseReturnBlock = new Stmt.Block(Arrays.asList(new Stmt.Block(Arrays.asList(recurReturn)))); // Multiple levels of blocks
 
-  // if (x == 0) { return 1 } else {{...}}
-  Expr.Binary secondIfCond = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.EQ, new Expr.IntLit(0));
-  Stmt.Return oneReturn = new Stmt.Return(new Expr.IntLit(1));
-  Stmt.Block secondThenBlock = new Stmt.Block(Arrays.asList(oneReturn));
-  Stmt.If secondIf = new Stmt.If(secondIfCond, secondThenBlock, elseReturnBlock);
+    // if (x == 0) { return 1 } else {{...}}
+    Expr.Binary secondIfCond = new Expr.Binary(new Expr.Var("x"), Expr.BinOp.EQ, new Expr.IntLit(0));
+    Stmt.Return oneReturn = new Stmt.Return(new Expr.IntLit(1));
+    Stmt.Block secondThenBlock = new Stmt.Block(Arrays.asList(oneReturn));
+    Stmt.If secondIf = new Stmt.If(secondIfCond, secondThenBlock, elseReturnBlock);
 
-  Stmt.Block factBody = new Stmt.Block(Arrays.asList(firstIf, secondIf));
-  Ast.FunDecl factDecl = new Ast.FunDecl("fact", Arrays.asList(xParam), Ast.Type.INT, factBody);
+    Stmt.Block factBody = new Stmt.Block(Arrays.asList(firstIf, secondIf));
+    Ast.FunDecl factDecl = new Ast.FunDecl("fact", Arrays.asList(xParam), Ast.Type.INT, factBody);
 
-  /// MAIN FUNCTION ///
+    /// MAIN FUNCTION ///
 
-  // sankar5: int = fact(123);
-  Expr.Call callFactMain = new Expr.Call("fact", Arrays.asList(new Expr.IntLit(123)));
-  Stmt.VarDef mainDefNetID = new Stmt.VarDef("sankar5", Ast.Type.INT, callFactMain);
+    // sankar5: int = fact(123);
+    Expr.Call callFactMain = new Expr.Call("fact", Arrays.asList(new Expr.IntLit(123)));
+    Stmt.VarDef mainDefNetID = new Stmt.VarDef("sankar5", Ast.Type.INT, callFactMain);
 
-  // output(sankar5)
-  Stmt.ExprStmt outputNetID = new Stmt.ExprStmt(new Expr.Call("output", Arrays.asList(new Expr.Var("sankar5"))));
+    // output(sankar5)
+    Stmt.ExprStmt outputNetID = new Stmt.ExprStmt(new Expr.Call("output", Arrays.asList(new Expr.Var("sankar5"))));
 
-  // return 0
-  Stmt.Return mainReturn = new Stmt.Return(new Expr.IntLit(0));
-  
-  Stmt.Block mainBody = new Stmt.Block(Arrays.asList(mainDefNetID, outputNetID, mainReturn));
-  Ast.FunDecl mainDecl = new Ast.FunDecl("main", Arrays.asList(), Ast.Type.INT, mainBody);
-  
-  return new Ast.Program(Arrays.<Ast.Decl>asList(factDecl, mainDecl));
+    // return 0
+    Stmt.Return mainReturn = new Stmt.Return(new Expr.IntLit(0));
+    
+    Stmt.Block mainBody = new Stmt.Block(Arrays.asList(mainDefNetID, outputNetID, mainReturn));
+    Ast.FunDecl mainDecl = new Ast.FunDecl("main", Arrays.asList(), Ast.Type.INT, mainBody);
+    
+    return new Ast.Program(Arrays.<Ast.Decl>asList(factDecl, mainDecl));
 
-}
+  }
 
   /**
    * (Corner cases: uninitialized global, bool global, multi-arg call)
