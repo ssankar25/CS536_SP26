@@ -31,6 +31,9 @@ public final class TestPrograms {
 
     System.out.println("== test7 ==");
     System.out.print(PrettyPrinter.pretty(test7()));
+
+    System.out.println("== test8 ==");
+    System.out.print(PrettyPrinter.pretty(test8()));
   }
 
   /**
@@ -429,6 +432,101 @@ public static Ast.Program test3() {
     Ast.FunDecl mainDecl = new Ast.FunDecl("main", Arrays.<Ast.Param>asList(), Ast.Type.INT, mainBody);
 
     return new Ast.Program(Arrays.<Ast.Decl>asList(mainDecl));
+  }
+
+  /**
+   * (Precedence chain stress: !, *, /, %, +, -, <, !=, &&, ||)
+   *
+   * fn prec(a: int, b: int, c: int, d: int, e: int, f: int, g: int, h: int, i: int, j: int): int {
+   *   if (!(a + b * c - d / e % f < g + h) && (i + 1) != j || a * b == c + d) {
+   *     return 1;
+   *   }
+   *   else {
+   *     return 0;
+   *   }
+   * }
+   *
+   * fn main(): int {
+   *   r: int = prec(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+   *   output(r);
+   *   return 0;
+   * }
+   */
+  public static Ast.Program test8() {
+    // params for prec
+    Ast.Param aParam = new Ast.Param("a", Ast.Type.INT);
+    Ast.Param bParam = new Ast.Param("b", Ast.Type.INT);
+    Ast.Param cParam = new Ast.Param("c", Ast.Type.INT);
+    Ast.Param dParam = new Ast.Param("d", Ast.Type.INT);
+    Ast.Param eParam = new Ast.Param("e", Ast.Type.INT);
+    Ast.Param fParam = new Ast.Param("f", Ast.Type.INT);
+    Ast.Param gParam = new Ast.Param("g", Ast.Type.INT);
+    Ast.Param hParam = new Ast.Param("h", Ast.Type.INT);
+    Ast.Param iParam = new Ast.Param("i", Ast.Type.INT);
+    Ast.Param jParam = new Ast.Param("j", Ast.Type.INT);
+
+    // a + b * c - d / e % f
+    Expr mulBC = new Expr.Binary(new Expr.Var("b"), Expr.BinOp.MUL, new Expr.Var("c"));
+    Expr addA = new Expr.Binary(new Expr.Var("a"), Expr.BinOp.ADD, mulBC);
+
+    Expr divDE = new Expr.Binary(new Expr.Var("d"), Expr.BinOp.DIV, new Expr.Var("e"));
+    Expr modDEF = new Expr.Binary(divDE, Expr.BinOp.MOD, new Expr.Var("f"));
+
+    Expr arithLeft = new Expr.Binary(addA, Expr.BinOp.SUB, modDEF);
+
+    // g + h
+    Expr addGH = new Expr.Binary(new Expr.Var("g"), Expr.BinOp.ADD, new Expr.Var("h"));
+
+    // (a + b*c - d/e%f) < (g + h)
+    Expr ltExpr = new Expr.Binary(arithLeft, Expr.BinOp.LT, addGH);
+
+    // !( ... )
+    Expr notLt = new Expr.Unary(Expr.UnOp.NOT, ltExpr);
+
+    // (i + 1) != j
+    Expr iPlus1 = new Expr.Binary(new Expr.Var("i"), Expr.BinOp.ADD, new Expr.IntLit(1));
+    Expr neExpr = new Expr.Binary(iPlus1, Expr.BinOp.NE, new Expr.Var("j"));
+
+    // !(...) && ((i+1) != j)
+    Expr andExpr = new Expr.Binary(notLt, Expr.BinOp.LAND, neExpr);
+
+    // a * b == c + d
+    Expr mulAB = new Expr.Binary(new Expr.Var("a"), Expr.BinOp.MUL, new Expr.Var("b"));
+    Expr addCD = new Expr.Binary(new Expr.Var("c"), Expr.BinOp.ADD, new Expr.Var("d"));
+    Expr eqExpr = new Expr.Binary(mulAB, Expr.BinOp.EQ, addCD);
+
+    // (!(...) && ...) || (a*b == c+d)
+    Expr cond = new Expr.Binary(andExpr, Expr.BinOp.LOR, eqExpr);
+
+    // if (...) { return 1; } else { return 0; }
+    Stmt.Block thenBlk = new Stmt.Block(Arrays.asList(new Stmt.Return(new Expr.IntLit(1))));
+    Stmt.Block elseBlk = new Stmt.Block(Arrays.asList(new Stmt.Return(new Expr.IntLit(0))));
+    Stmt.If ifStmt = new Stmt.If(cond, thenBlk, elseBlk);
+
+    Stmt.Block precBody = new Stmt.Block(Arrays.asList(ifStmt));
+    Ast.FunDecl precDecl = new Ast.FunDecl(
+      "prec",
+      Arrays.asList(aParam, bParam, cParam, dParam, eParam, fParam, gParam, hParam, iParam, jParam),
+      Ast.Type.INT,
+      precBody
+    );
+
+    // main
+    Expr.Call callPrec = new Expr.Call(
+      "prec",
+      Arrays.asList(
+        new Expr.IntLit(1), new Expr.IntLit(2), new Expr.IntLit(3), new Expr.IntLit(4), new Expr.IntLit(5),
+        new Expr.IntLit(6), new Expr.IntLit(7), new Expr.IntLit(8), new Expr.IntLit(9), new Expr.IntLit(10)
+      )
+    );
+    Stmt.VarDef rDef = new Stmt.VarDef("r", Ast.Type.INT, callPrec);
+    Stmt.ExprStmt outR = new Stmt.ExprStmt(new Expr.Call("output", Arrays.asList(new Expr.Var("r"))));
+    Stmt.Return ret0 = new Stmt.Return(new Expr.IntLit(0));
+
+    Stmt.Block mainBody = new Stmt.Block(Arrays.asList(rDef, outR, ret0));
+    Ast.FunDecl mainDecl = new Ast.FunDecl("main", Arrays.<Ast.Param>asList(), Ast.Type.INT, mainBody);
+
+    return new Ast.Program(Arrays.<Ast.Decl>asList(precDecl, mainDecl));
   }
 
 }
