@@ -1,7 +1,8 @@
 package madlang;
 
-import madlang.ast.*;
-import java.util.*;
+import madlang.ast.Ast;
+import madlang.ast.Expr;
+import madlang.ast.Stmt;
 
 /**
  * Pretty printer entry point for CS536 MadLang.
