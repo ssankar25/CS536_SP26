@@ -378,7 +378,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     if (operator == Operator.AND) {
       // Check if the left side is false and short-circuit return if so
       boolean left = asBool(evaluate(expr.left));
-      // TODO: CHECK if (!(expr.right instanceof Boolean)) typeMismatch();
       if (!left) return false;
       
       // Check for expr.right: true && expr.right = expr.right
@@ -389,7 +388,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     if (operator == Operator.OR) {
       // Check if left side is true and short-circuit return if so
       boolean left = asBool(evaluate(expr.left));
-      // TODO: CHECK if (!(expr.right instanceof Boolean)) typeMismatch();
       if (left) return true;
 
       // Check for expr.right: false || expr.right = expr.right
