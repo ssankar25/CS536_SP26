@@ -177,6 +177,31 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     }
   }
 
+  // Executes top-level declarations, then calls main() if it exists.
+  void interpret(List<Stmt> program) {
+    // Execute the program statements
+    for (Stmt s : program) {
+      execute(s);
+    }
+
+    // Call the main function if it exists
+    Environment.Entry mainEntry = globals.lookup("main");
+    if (mainEntry == null) return;
+
+    if (!mainEntry.isFunction()) typeMismatch();
+
+    CallableFunction mainFunc = (CallableFunction) mainEntry.value;
+
+    // Check that main's return type is int
+    if (mainFunc.getReturnType() != VarType.INT) typeMismatch();
+
+    // Check number of main params is 0
+    List<Stmt.Parameter> mainParams = mainFunc.getParams();
+    if (mainParams.size() != 0) typeMismatch();
+
+    mainFunc.call(List.of());
+  }
+
   // Evaluate wrapper for expression types to 
   // call the corresponding expression acceptor
   private Object evaluate(Expr expr) {
