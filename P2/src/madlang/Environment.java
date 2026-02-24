@@ -3,12 +3,19 @@ package madlang;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Environment class that maps variable and function references
+ * to their corresponding values for a running program.
+ */
 class Environment {
 
-  // Class for defining the entries stored in the environment
-  // Both variable values and function objects can be stored in the HashMap,
-  // so the same HashMap can be used to check for function names in the same scope,
-  // and function shadowing can be done
+  /**
+   * Class for defining the entries stored in the environment.
+   * 
+   * Both variable values and function objects can be stored in the HashMap,
+   * so the same HashMap can be used to check for function names in the same scope,
+   * and function shadowing can be done.
+   */
   static final class Entry {
 
     // If type == null, this entry is a function binding.
@@ -17,12 +24,23 @@ class Environment {
     // For a function, its value is an object containing 
     // the information needed to call the function
     Object value;
-
+    
+    /**
+     * Entry constructor that sets the HashMap entry's type and value.
+     * 
+     * @param type The type of the entry (type == null for functions).
+     * @param value The value of the entry.
+     */
     Entry(VarType type, Object value) {
       this.type = type;
       this.value = value;
     }
 
+    /**
+     * Checks to see if the entry is a function (type == null for functions).
+     * 
+     * @return True if the entry is a function, false otherwise.
+     */
     boolean isFunction() {
       return type == null;
     }
@@ -34,11 +52,18 @@ class Environment {
   // Environment of the parent scope
   private final Environment parent;
 
-  // Default constructor initializes the parent to null
+  /**
+   * Default environment constructor the initializes the parent to null.
+   */
   Environment() {
     this(null);
   }
 
+  /**
+   * Environment constructor that sets the parent environment.
+   * 
+   * @param parent The parent environment to set.
+   */
   Environment(Environment parent) {
     this.parent = parent;
   }
@@ -55,7 +80,13 @@ class Environment {
     return null;
   }
 
-  // Used to add new variable to hashmap
+  /**
+   * Adds a new variable to the environment if there is no duplicate in the same scope.
+   * 
+   * @param name The name of the variable.
+   * @param type The variable type (int or bool).
+   * @param value The value of the variable.
+   */
   void defineVar(String name, VarType type, Object value) {
 
     // First check for duplicate declaration in the same scope
@@ -66,7 +97,12 @@ class Environment {
     values.put(name, new Entry(type, value));
   }
 
-  // Used to add new function to hashmap
+  /**
+   * Adds a new function to the environment if there is no duplicate in the same scope.
+   * 
+   * @param name The name of the function.
+   * @param funcCallable The callable function object that is the value of the function.
+   */
   void defineFunction(String name, Object funcCallable) {
 
     // First check for duplicate declaration in same scope
@@ -77,8 +113,12 @@ class Environment {
     values.put(name, new Entry(null, funcCallable));
   }
 
-  // Used to evaluate assignment statements by adding the 
-  // new assignment to the Hashmap
+  /**
+   * Assigns an existing variable in the environment to the specified value.
+   * 
+   * @param name The name of the variable to assign.
+   * @param value The value to assign the variable to.
+   */
   void assign(String name, Object value) {
 
     if (values.containsKey(name)) {

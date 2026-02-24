@@ -1,17 +1,29 @@
 package madlang;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Driver class to run test cases for the interpreter.
+ */
 public class Main {
+
+    /**
+     * Main method to run all the tests.
+     * 
+     * @param args Unused.
+     */
     public static void main(String[] args) {
         runAll();
     }
 
+    /**
+     * Helper method to run all of the provided test cases.
+     */
     public static void runAll() {
         // Basic tests
         runNormal("basic_arithmetic", testBasicArithmetic(), "", "15\n");
@@ -19,6 +31,7 @@ public class Main {
         runNormal("block_shadowing", testBlockShadowing(), "", "10\n20\n10\n");
         runNormal("default_return_value", testDefaultReturnValue(), "", "0\n");
         runNormal("short_circuit_avoids_div0", testShortCircuitAvoidsDiv0(), "", "123\n");
+        runNormal("function_with_params", testFunctionWithParams(), "", "9\n");
 
         // Corner/error tests (3 required types from README)
         runErr("type_mismatch", testTypeMismatch(), "", "type mismatch");
@@ -32,11 +45,19 @@ public class Main {
         // More corner cases
         runNormal("short_circuit_or_skips_bad_rhs", testShortCircuitOrSkipsBadRHS(), "", "1\n");
         runNormal("shadow_input_with_var", testShadowInputWithVar(), "42\n", "7\n42\n");
+        runNormal("lexical_scoping_over_dynamic", testLexicalScopingOverDynamic(), "", "10\n");
 
         System.out.println("All tests passed!");
     }
 
-    // Method to run normal tests that shouldn't error
+    /**
+     * Helper method to run normal tests that should not error.
+     * 
+     * @param name Name of the test being run.
+     * @param program Program that contains the list of statements to be tested.
+     * @param testInput Optional argument to provide input to stdin for the test. Leave as an empty string if not provided.
+     * @param expectedOut The expected output for the test.
+     */
     private static void runNormal(String name, List<Stmt> program, String testInput, String expectedOut) {
 
         // Run the program and get the output
@@ -47,15 +68,31 @@ public class Main {
             throw new AssertionError("FAIL " + name + "\nExpected:\n" + expectedOut + "\nGot:\n" + out);
         }
 
-        System.out.println("PASS " + name);
+        System.out.println("PASS " + name + "\nExpected: " + expectedOut + "Actual: " + out);
     }
 
-    // Method to run tests that should have an error message containing mustContain
+    /**
+     * Helper method to run tests that are expected to error.
+     * 
+     * @param name Name of the test being run.
+     * @param program Program that contains the list of statements to be tested.
+     * @param testInput Optional argument to provide input to stdin for the test. Leave as an empty string if not provided.
+     * @param mustContain String that the error message is expected to contain.
+     */
     private static void runErr(String name, List<Stmt> program, String testInput, String mustContain) {
-        run(program, testInput, true, mustContain);
-        System.out.println("PASS " + name);
+        String msg = run(program, testInput, true, mustContain); // TODO
+        System.out.println("PASS " + name + "\nError message: " + msg);
     }
 
+    /**
+     * Helper method that redirects stdin and stdout for testing and runs the interpreter.
+     * 
+     * @param program Program that contains the list of statements to be tested.
+     * @param testInput Optional argument to provide input to stdin for the test.
+     * @param expectErr Flag to indicate that an error is expected.
+     * @param mustContain String that an expected error must contain. If no error is expected, this can be null.
+     * @return The output of the test case if valid output is expected. Null is returned upon an error being thrown (expected or not).
+     */
     private static String run(List<Stmt> program, String testInput, boolean expectErr, String mustContain) {
 
         // Save the standard input/output stream
@@ -95,7 +132,7 @@ public class Main {
             }
 
             // If we reach here, then we got the right exception (only in runErr)
-            return null;
+            return msg; // TODO
 
         } finally {
             // Reset the system stdin and stdout
@@ -195,8 +232,10 @@ public class Main {
     public static List<Stmt> testBlockShadowing() {
         List<Stmt> program = new ArrayList<>();
 
+        // x: int = 10;
         program.add(new Stmt.Var("x", VarType.INT, new Expr.Literal(10)));
 
+        // { x: int = 20; output(x); }
         Stmt.Block inner = new Stmt.Block(List.of(
             new Stmt.Var("x", VarType.INT, new Expr.Literal(20)),
             new Stmt.Expression(new Expr.Call("output", List.of(new Expr.Variable("x"))))
@@ -274,6 +313,7 @@ public class Main {
     public static List<Stmt> testShortCircuitAvoidsDiv0() {
         List<Stmt> program = new ArrayList<>();
 
+        // false && (1 / 0)
         Expr div0 = new Expr.Binary(new Expr.Literal(1), Operator.DIVIDE, new Expr.Literal(0));
         Expr shortCircuit = new Expr.Binary(new Expr.Literal(false), Operator.AND, div0);
 
@@ -288,6 +328,65 @@ public class Main {
             )
         );
 
+        program.add(main);
+        return program;
+    }
+
+    /**
+     * Program:
+     *
+     * fn add(a: int, b: int): int {
+     *   return a + b;
+     * }
+     *
+     * fn main(): int {
+     *   output(add(6, 3));
+     *   return 0;
+     * }
+     *
+     * Expected output: 9
+     */
+    public static List<Stmt> testFunctionWithParams() {
+        List<Stmt> program = new ArrayList<>();
+
+        // fn add(a: int, b: int): int { return a + b; }
+        Stmt.Function add = new Stmt.Function(
+            "add",
+            VarType.INT,
+            List.of(
+                new Stmt.Parameter("a", VarType.INT),
+                new Stmt.Parameter("b", VarType.INT)
+            ),
+            List.of(
+                new Stmt.Return(
+                    new Expr.Binary(
+                        new Expr.Variable("a"),
+                        Operator.PLUS,
+                        new Expr.Variable("b")
+                    )
+                )
+            )
+        );
+
+        // fn main(): int { output(add(6, 3)); return 0; }
+        Stmt.Function main = new Stmt.Function(
+            "main",
+            VarType.INT,
+            List.of(),
+            List.of(
+                new Stmt.Expression(
+                    new Expr.Call(
+                        "output",
+                        List.of(
+                            new Expr.Call("add", List.of(new Expr.Literal(6), new Expr.Literal(3)))
+                        )
+                    )
+                ),
+                new Stmt.Return(new Expr.Literal(0))
+            )
+        );
+
+        program.add(add);
         program.add(main);
         return program;
     }
@@ -353,6 +452,7 @@ public class Main {
     public static List<Stmt> testArithmeticError() {
         List<Stmt> program = new ArrayList<>();
 
+        // (1 / 0)
         Expr bad = new Expr.Binary(new Expr.Literal(1), Operator.DIVIDE, new Expr.Literal(0));
 
         Stmt.Function main = new Stmt.Function(
@@ -374,7 +474,7 @@ public class Main {
      *
      * fn main(): int {
      *   {
-     *     fun output(x: int): int { return 0; }  // shadows builtin output
+     *     fn output(x: int): int { return 0; }   // shadows builtin output
      *     output(999);                           // should NOT print
      *   }
      *   output(7);  // builtin output restored (prints 7)
@@ -384,6 +484,7 @@ public class Main {
     public static List<Stmt> testOutputShadowing() {
         List<Stmt> program = new ArrayList<>();
 
+        // { fn output(x: int): int { return 0; } }
         Stmt.Function shadowOutput = new Stmt.Function(
             "output",
             VarType.INT,
@@ -393,6 +494,7 @@ public class Main {
             )
         );
 
+        // { fn output(x: int): int { return 0; } output(999); }
         Stmt.Block inner = new Stmt.Block(List.of(
             shadowOutput,
             new Stmt.Expression(new Expr.Call("output", List.of(new Expr.Literal(999))))
@@ -461,6 +563,7 @@ public class Main {
         Expr badRhs = new Expr.Binary(new Expr.Literal(1), Operator.PLUS, new Expr.Literal(false));
         Expr orExpr = new Expr.Binary(new Expr.Literal(true), Operator.OR, badRhs);
 
+        // b: bool = true || (1 + false); 
         Stmt.Var bDecl = new Stmt.Var("b", VarType.BOOL, orExpr);
 
         Stmt.If ifStmt = new Stmt.If(
@@ -505,6 +608,7 @@ public class Main {
     public static List<Stmt> testShadowInputWithVar() {
         List<Stmt> program = new ArrayList<>();
 
+        // { input: int = 7; output(input); }
         Stmt.Block inner = new Stmt.Block(List.of(
             new Stmt.Var("input", VarType.INT, new Expr.Literal(7)),
             new Stmt.Expression(new Expr.Call("output", List.of(new Expr.Variable("input"))))
@@ -523,6 +627,57 @@ public class Main {
         );
 
         program.add(main);
+        return program;
+    }
+
+    /**
+     * Program:
+     *
+     * x: int = 10;
+     * fn f(): int {
+     *   output(x); // Outputs 10 from definition time
+     *   return 0;
+     * }
+     * fn main(): int {
+     *   x: int = 5;
+     *   f();
+     *   return 0;
+     * }
+     *
+     * Expected output: 10
+     */
+    public static List<Stmt> testLexicalScopingOverDynamic() {
+        List<Stmt> program = new ArrayList<>();
+
+        // x: int = 10;
+        program.add(new Stmt.Var("x", VarType.INT, new Expr.Literal(10)));
+
+        // fn f(): int { output(x); return 0; }
+        Stmt.Function f = new Stmt.Function(
+            "f",
+            VarType.INT,
+            List.of(),
+            List.of(
+                new Stmt.Expression(new Expr.Call("output", List.of(new Expr.Variable("x")))),
+                new Stmt.Return(new Expr.Literal(0))
+            )
+        );
+
+        // fn main(): int { x: int = 5; f(); return 0; }
+        Stmt.Function main = new Stmt.Function(
+            "main",
+            VarType.INT,
+            List.of(),
+            List.of(
+                new Stmt.Var("x", VarType.INT, new Expr.Literal(5)),
+                new Stmt.Expression(new Expr.Call("f", List.of())),
+                new Stmt.Return(new Expr.Literal(0))
+            )
+        );
+
+        program.add(f);
+        program.add(main);
+
         return program;
     }
 }
