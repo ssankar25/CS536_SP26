@@ -223,7 +223,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     }
 
     /**
-     * Calls the functon by executing each of the statements
+     * Calls the function by executing each of the statements
      * in the function body.
      * 
      * @param args The list of arguments that is loaded into the function's environment before executing.
