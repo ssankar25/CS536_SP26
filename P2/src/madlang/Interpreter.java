@@ -31,8 +31,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
   }
 
   /**
-   * Lightweight excepton is thrown upon returning from a function
-   * to easily unwind the callstack
+   * Lightweight exception is thrown upon returning from a function
+   * to easily unwind the call stack
    */
   private static final class ReturnSignal extends RuntimeException {
     final Object value;
@@ -45,7 +45,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
      */
     ReturnSignal(Object value) {
       // Initialize ReturnSignal exception to not capture
-      // the callstack, but to just unwind the stack to the point
+      // the call stack, but to just unwind the stack to the point
       // where the exception is caught
       super(null, null, false, false);
       this.value = value;
@@ -54,7 +54,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
 
   /**
    * Interface to define what a callable function object looks like,
-   * which is stored in the environment for each funtion reference.
+   * which is stored in the environment for each function reference.
    * 
    * Each function has an accessible return type and parameters, along
    * with a call function for its implementation.
@@ -203,9 +203,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     }
 
     /**
-     * Getter method for the function return type.
+     * Getter method for the function parameters.
      * 
-     * @return The function's return type.
+     * @return The function's parameter list.
      */
     @Override
     public List<Stmt.Parameter> getParams() {
@@ -213,9 +213,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     }
 
     /**
-     * Getter method for the function parameters.
+     * Getter method for the function return type.
      * 
-     * @return The function's parameter list.
+     * @return The function's return type.
      */
     @Override
     public VarType getReturnType() {
@@ -255,7 +255,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
           currEnv.defineVar(p.name(), p.type(), args.get(i));
         }
 
-        // Exectute the body statements
+        // Execute the body statements
         for (Stmt s : body) execute(s);
 
       } catch(ReturnSignal r) {
@@ -349,7 +349,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
   }
 
   /**
-   * Helper method to covert an object to an integer. Throws a type mismatch
+   * Helper method to convert an object to an integer. Throws a type mismatch
    * exception if the object is not an integer.
    * 
    * @param obj The object to convert.
@@ -361,7 +361,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
   }
 
   /**
-   * Helper method to covert an object to a boolean. Throws a type mismatch
+   * Helper method to convert an object to a boolean. Throws a type mismatch
    * exception if the object is not an boolean.
    * 
    * @param obj The object to convert.
@@ -395,7 +395,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     if (type == VarType.BOOL && !(val instanceof Boolean)) typeMismatch();
   }
 
-  /// STATMENT VISITORS ///
+  /// STATEMENT VISITORS ///
   
   /**
    * Executes a function statement.
@@ -444,7 +444,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     Object val = evaluate(stmt.value);
 
     // Throw the custom lightweight exception
-    // to unwind the callstack
+    // to unwind the call stack
     throw new ReturnSignal(val);
   }
 
@@ -573,7 +573,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
       return asBool(evaluate(expr.right));
     }
 
-    // Short-circuit AND evaluation
+    // Short-circuit OR evaluation
     if (operator == Operator.OR) {
       // Check if left side is true and short-circuit return if so
       boolean left = asBool(evaluate(expr.left));

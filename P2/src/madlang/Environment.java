@@ -53,7 +53,7 @@ class Environment {
   private final Environment parent;
 
   /**
-   * Default environment constructor the initializes the parent to null.
+   * Default environment constructor that initializes the parent to null.
    */
   Environment() {
     this(null);

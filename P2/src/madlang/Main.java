@@ -68,7 +68,7 @@ public class Main {
             throw new AssertionError("FAIL " + name + "\nExpected:\n" + expectedOut + "\nGot:\n" + out);
         }
 
-        System.out.println("PASS " + name + "\nExpected: " + expectedOut + "Actual: " + out);
+        System.out.println("PASS " + name);
     }
 
     /**
@@ -80,8 +80,8 @@ public class Main {
      * @param mustContain String that the error message is expected to contain.
      */
     private static void runErr(String name, List<Stmt> program, String testInput, String mustContain) {
-        String msg = run(program, testInput, true, mustContain); // TODO
-        System.out.println("PASS " + name + "\nError message: " + msg);
+        run(program, testInput, true, mustContain);
+        System.out.println("PASS " + name);
     }
 
     /**
@@ -91,7 +91,7 @@ public class Main {
      * @param testInput Optional argument to provide input to stdin for the test.
      * @param expectErr Flag to indicate that an error is expected.
      * @param mustContain String that an expected error must contain. If no error is expected, this can be null.
-     * @return The output of the test case if valid output is expected. Null is returned upon an error being thrown (expected or not).
+     * @return The output of the test case if valid output is expected. Null is returned if an expected error is thrown.
      */
     private static String run(List<Stmt> program, String testInput, boolean expectErr, String mustContain) {
 
@@ -132,7 +132,7 @@ public class Main {
             }
 
             // If we reach here, then we got the right exception (only in runErr)
-            return msg; // TODO
+            return null;
 
         } finally {
             // Reset the system stdin and stdout
@@ -197,22 +197,22 @@ public class Main {
                 new Stmt.Expression(new Expr.Call("output", List.of(new Expr.Variable("x")))),
                 new Stmt.Assign("x", new Expr.Binary(new Expr.Variable("x"), Operator.MINUS, new Expr.Literal(1)))
             ))
-    );
+        );
 
-    Stmt.Function main = new Stmt.Function(
-        "main",
-        VarType.INT,
-        List.of(),
-        List.of(
-            new Stmt.Var("x", VarType.INT, new Expr.Literal(3)),
-            loop,
-            new Stmt.Return(new Expr.Literal(0))
-        )
-    );
+        Stmt.Function main = new Stmt.Function(
+            "main",
+            VarType.INT,
+            List.of(),
+            List.of(
+                new Stmt.Var("x", VarType.INT, new Expr.Literal(3)),
+                loop,
+                new Stmt.Return(new Expr.Literal(0))
+            )
+        );
 
-    program.add(main);
-    return program;
-  }
+        program.add(main);
+        return program;
+    }
 
     /**
      * Program:
