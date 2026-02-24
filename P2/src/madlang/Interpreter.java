@@ -362,7 +362,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
 
   /**
    * Helper method to convert an object to a boolean. Throws a type mismatch
-   * exception if the object is not an boolean.
+   * exception if the object is not a boolean.
    * 
    * @param obj The object to convert.
    * @return The boolean if the conversion is successful as an unboxed primitive. 
