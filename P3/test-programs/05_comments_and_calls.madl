@@ -1,0 +1,16 @@
+/*
+  Lexer stress: block comments, line comments, and spacing around tokens.
+*/
+fn add(a: int, b: int): int {
+  return a + b; // simple helper
+}
+
+fn triple(n: int): int {
+  return add(n, add(n, n));
+}
+
+fn main(): int {
+  // Arg evaluation order should be left-to-right per spec.
+  output(add(1 + 2, triple(3))); // expect: 12
+  return 0;
+}

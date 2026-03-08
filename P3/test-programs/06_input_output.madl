@@ -1,0 +1,17 @@
+fn main(): int {
+  x: int = input();
+  y: int = input();
+  sum: int = x + y;
+
+  output(x); // expect: first input value
+  output(y); // expect: second input value
+  output(sum); // expect: x + y
+
+  if (sum > 10) {
+    output(1); // expect: 1 when x + y > 10, else not printed
+  } else {
+    output(0); // expect: 0 when x + y <= 10, else not printed
+  }
+
+  return 0;
+}

@@ -1,0 +1,23 @@
+seed: int = 3;
+
+fn outer(x: int): int {
+  bonus: int = 10;
+
+  fn inner(y: int): int {
+    // Tests nested function + capture from outer/global scopes.
+    return y * y + bonus + seed;
+  }
+
+  i: int = 0;
+  total: int = 0;
+  while (i < x) {
+    total = total + inner(i);
+    i = i + 1;
+  }
+  return total;
+}
+
+fn main(): int {
+  output(outer(4)); // expect: 66
+  return 0;
+}

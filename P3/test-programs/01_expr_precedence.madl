@@ -1,0 +1,13 @@
+fn main(): int {
+  a: int = 2 + 3 * 4 - 5 % 2;
+  b: bool = a > 10 && !(a == 13) || false;
+  c: int = (2 + 3) * (4 - 1);
+  output(a); // expect: 13
+  output(c); // expect: 15
+  if (b) {
+    output(1); // expect: not printed
+  } else {
+    output(0); // expect: 0
+  }
+  return 0;
+}

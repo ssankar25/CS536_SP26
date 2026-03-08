@@ -1,0 +1,21 @@
+x: int = 7;
+flag: bool;
+
+fn main(): int {
+  output(x); // expect: 7
+
+  {
+    x: int = 9;
+    output(x); // expect: 9
+
+    {
+      x: int = x + 5;
+      output(x); // expect: 14
+    }
+
+    output(x); // expect: 9
+  }
+
+  output(x); // expect: 7
+  return 0;
+}

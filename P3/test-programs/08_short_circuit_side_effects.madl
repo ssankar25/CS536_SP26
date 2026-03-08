@@ -1,0 +1,49 @@
+counter: int = 0;
+
+fn f_false(): bool {
+  counter = counter + 1;
+  return false;
+}
+
+fn f_true(): bool {
+  counter = counter + 10;
+  return true;
+}
+
+fn g(): bool {
+  // If g() runs, it leaves a large trace in counter.
+  counter = counter + 100;
+  return true;
+}
+
+fn main(): int {
+  counter = 0;
+  if (f_false() && g()) {
+    output(999); // expect: not printed
+  } else {
+    output(counter); // expect: 1   (g not called because lhs is false)
+  }
+
+  counter = 0;
+  if (f_true() || g()) {
+    output(counter); // expect: 10  (g not called because lhs is true)
+  } else {
+    output(999); // expect: not printed
+  }
+
+  counter = 0;
+  if (f_false() || g()) {
+    output(counter); // expect: 101 (g called because lhs is false)
+  } else {
+    output(999); // expect: not printed
+  }
+
+  counter = 0;
+  if (f_true() && g()) {
+    output(counter); // expect: 110 (g called because lhs is true)
+  } else {
+    output(999); // expect: not printed
+  }
+
+  return 0;
+}
