@@ -53,3 +53,50 @@ class UnboundReference extends TypeError {
     this.id = id;
   }
 }
+
+/// ADDED ERRORS ///
+
+class InvalidLiteral extends TypeError {
+  InvalidLiteral() {
+    super("Invalid Literal");
+  }
+}
+
+class InvalidOperator extends TypeError {
+  String operator;
+
+  InvalidOperator(String operator) {
+    super("Invalid Operator: <" + operator + ">");
+    this.operator = operator;
+  }
+}
+
+class DuplicateSymbol extends TypeError {
+  String id;
+
+  DuplicateSymbol(String id) {
+    super("Duplicate symbol: <" + id + ">");
+    this.id = id;
+  }
+}
+
+class IllegalVarApplication extends TypeError {
+  String id; // The identifier that is supposed to be a variable
+
+  IllegalVarApplication(String id) {
+    super("Illegal variable application: <" + id + "> is at a variable position, but is indicated as a function");
+    this.id = id;
+  }
+}
+
+class IllegalReturn extends TypeError {
+  IllegalReturn() {
+    super("Illegal return: Return statement appears outside of a function");
+  }
+}
+
+class IllegalGlobalInitializer extends TypeError {
+  IllegalGlobalInitializer() {
+    super("Illegal global initializer: global initializers may not contain variable references or function calls");
+  }
+}
