@@ -50,7 +50,7 @@ class TypeChecker implements Expr.Visitor<VarType, TypeError>, Stmt.Visitor<Void
   }
 
   /**
-   * Helper method to make sure that a global variable intializer
+   * Helper method to make sure that a global variable initializer
    * only contains literals as per the spec.
    * 
    * @param expr The expression to check as a global variable initializer.
@@ -365,7 +365,7 @@ class TypeChecker implements Expr.Visitor<VarType, TypeError>, Stmt.Visitor<Void
     if (expr.value instanceof Integer) return VarType.INT;
     else if (expr.value instanceof Boolean) return VarType.BOOL;
     else {
-      // ERROR CASE: Literal must of type INT or BOOL
+      // ERROR CASE: Literal must be of type INT or BOOL
       throw new InvalidLiteral();
     }
   }

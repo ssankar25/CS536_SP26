@@ -27,8 +27,8 @@ class Context {
    * null. If the entry is a function, then funcType is non-null and varType is null.
    */
   static final class Entry {
-    VarType varType; // NULL if the entry is a function
-    FunctionTypeInfo funcType; // NULL if entry is a variable
+    final VarType varType; // NULL if the entry is a function
+    final FunctionTypeInfo funcType; // NULL if entry is a variable
 
     /**
      * Constructor for an entry in the context.

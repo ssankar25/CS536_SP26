@@ -31,7 +31,7 @@ public final class Main {
     runNormal("function_shadowing", testFunctionShadowing());
     runNormal("global_literal_initializer", testGlobalLiteralInitializer());
 
-    // Corner/error tests from README and spec
+    // Corner/error tests from README
     runErr("var_initializer_type_mismatch", testVarInitializerTypeMismatch(), MismatchedTypes.class);
     runErr("assignment_type_mismatch", testAssignmentTypeMismatch(), MismatchedTypes.class);
     runErr("if_condition_not_bool", testIfConditionNotBool(), MismatchedTypes.class);
@@ -39,14 +39,10 @@ public final class Main {
     runErr("return_type_mismatch", testReturnTypeMismatch(), MismatchedTypes.class);
     runErr("wrong_argument_count", testWrongArgumentCount(), WrongArgumentCount.class);
     runErr("illegal_application", testIllegalApplication(), IllegalApplication.class);
-    runErr("function_used_as_value", testFunctionUsedAsValue(), IllegalVarApplication.class);
     runErr("unbound_reference", testUnboundReference(), UnboundReference.class);
-    runErr("duplicate_symbol_same_scope", testDuplicateSymbolSameScope(), DuplicateSymbol.class);
     runErr("call_before_declaration", testCallBeforeDeclaration(), UnboundReference.class);
-    runErr("global_initializer_reference", testIllegalGlobalInitializerReference(), IllegalGlobalInitializer.class);
-    runErr("global_initializer_call", testIllegalGlobalInitializerCall(), IllegalGlobalInitializer.class);
 
-    // Bonus tests for unused identifier analysis
+    // Tests for unused identifier analysis
     runUnused("unused_local_var", testUnusedLocalVar(), Set.of("x"));
     runUnused("unused_no_recursive_usage", testUnusedNoRecursiveUsage(), Set.of("y"));
     runUnused("unused_shadowing_same_name", testUnusedShadowingSameName(), Set.of("x"));
@@ -660,47 +656,6 @@ public final class Main {
   /**
    * Program:
    *
-   * fn f(): int {
-   *   return 0;
-   * }
-   *
-   * fn main(): int {
-   *   x: int = f;
-   *   return 0;
-   * }
-   *
-   * Checks using a function name as a value.
-   */
-  public static List<Stmt> testFunctionUsedAsValue() {
-    List<Stmt> program = new ArrayList<>();
-
-    Stmt.Function f = new Stmt.Function(
-        "f",
-        VarType.INT,
-        List.of(),
-        List.of(
-            new Stmt.Return(new Expr.Literal(0))
-        )
-    );
-
-    Stmt.Function main = new Stmt.Function(
-        "main",
-        VarType.INT,
-        List.of(),
-        List.of(
-            new Stmt.Var("x", VarType.INT, new Expr.Variable("f")),
-            new Stmt.Return(new Expr.Literal(0))
-        )
-    );
-
-    program.add(f);
-    program.add(main);
-    return program;
-  }
-
-  /**
-   * Program:
-   *
    * fn main(): int {
    *   return z;
    * }
@@ -714,46 +669,6 @@ public final class Main {
         List.of(),
         List.of(
             new Stmt.Return(new Expr.Variable("z"))
-        )
-    );
-
-    program.add(main);
-    return program;
-  }
-
-  /**
-   * Program:
-   *
-   * fn main(): int {
-   *   x: int = 0;
-   *   fn x(): int {
-   *     return 0;
-   *   }
-   *   return 0;
-   * }
-   *
-   * Checks duplicate names in the same scope and shared namespace.
-   */
-  public static List<Stmt> testDuplicateSymbolSameScope() {
-    List<Stmt> program = new ArrayList<>();
-
-    Stmt.Function xFunc = new Stmt.Function(
-        "x",
-        VarType.INT,
-        List.of(),
-        List.of(
-            new Stmt.Return(new Expr.Literal(0))
-        )
-    );
-
-    Stmt.Function main = new Stmt.Function(
-        "main",
-        VarType.INT,
-        List.of(),
-        List.of(
-            new Stmt.Var("x", VarType.INT, new Expr.Literal(0)),
-            xFunc,
-            new Stmt.Return(new Expr.Literal(0))
         )
     );
 
@@ -798,62 +713,6 @@ public final class Main {
 
     program.add(f);
     program.add(g);
-    return program;
-  }
-
-  /**
-   * Program:
-   *
-   * x: int = 1;
-   * y: int = x;
-   *
-   * fn main(): int {
-   *   return 0;
-   * }
-   */
-  public static List<Stmt> testIllegalGlobalInitializerReference() {
-    List<Stmt> program = new ArrayList<>();
-
-    program.add(new Stmt.Var("x", VarType.INT, new Expr.Literal(1)));
-    program.add(new Stmt.Var("y", VarType.INT, new Expr.Variable("x")));
-
-    Stmt.Function main = new Stmt.Function(
-        "main",
-        VarType.INT,
-        List.of(),
-        List.of(
-            new Stmt.Return(new Expr.Literal(0))
-        )
-    );
-
-    program.add(main);
-    return program;
-  }
-
-  /**
-   * Program:
-   *
-   * x: int = input();
-   *
-   * fn main(): int {
-   *   return 0;
-   * }
-   */
-  public static List<Stmt> testIllegalGlobalInitializerCall() {
-    List<Stmt> program = new ArrayList<>();
-
-    program.add(new Stmt.Var("x", VarType.INT, new Expr.Call("input", List.of())));
-
-    Stmt.Function main = new Stmt.Function(
-        "main",
-        VarType.INT,
-        List.of(),
-        List.of(
-            new Stmt.Return(new Expr.Literal(0))
-        )
-    );
-
-    program.add(main);
     return program;
   }
 

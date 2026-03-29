@@ -128,7 +128,7 @@ class UnusedIdentifierAnalysis implements Expr.Visitor<Void, RuntimeException>, 
   private void recordReference(String name) {
     DeclInfo declInfo = currScope.lookup(name);
 
-    // Ignore unbound references for this analysis
+    // Ignore unbound references
     if (declInfo == null) return;
 
     // Direct self-recursion / self-reference should not count as usage
@@ -313,6 +313,8 @@ class UnusedIdentifierAnalysis implements Expr.Visitor<Void, RuntimeException>, 
 
   /**
    * Visitor to analyze an assignment statement.
+   * Record assignment reference as a usage because we are not
+   * looking for recursive references.
    * 
    * @param stmt The assignment statement to analyze.
    */
@@ -362,6 +364,7 @@ class UnusedIdentifierAnalysis implements Expr.Visitor<Void, RuntimeException>, 
 
   /**
    * Visitor to analyze a variable expression.
+   * Record the reference of a variable usage.
    * 
    * @param expr The variable expression to analyze.
    */
@@ -373,6 +376,8 @@ class UnusedIdentifierAnalysis implements Expr.Visitor<Void, RuntimeException>, 
 
   /**
    * Visitor to analyze a function call expression.
+   * Record the reference of a function call, as long as it is not a
+   * recursive call to itself.
    * 
    * @param expr The function call expression to analyze.
    */
