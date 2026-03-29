@@ -2,6 +2,7 @@ package madlang;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Driver class to run test cases for the type checker.
@@ -44,6 +45,12 @@ public final class Main {
     runErr("call_before_declaration", testCallBeforeDeclaration(), UnboundReference.class);
     runErr("global_initializer_reference", testIllegalGlobalInitializerReference(), IllegalGlobalInitializer.class);
     runErr("global_initializer_call", testIllegalGlobalInitializerCall(), IllegalGlobalInitializer.class);
+
+    // Bonus tests for unused identifier analysis
+    runUnused("unused_local_var", testUnusedLocalVar(), Set.of("x"));
+    runUnused("unused_no_recursive_usage", testUnusedNoRecursiveUsage(), Set.of("y"));
+    runUnused("unused_shadowing_same_name", testUnusedShadowingSameName(), Set.of("x"));
+    runUnused("unused_self_recursive_function", testUnusedSelfRecursiveFunction(), Set.of("f"));
 
     System.out.println("All tests passed!");
   }
@@ -106,6 +113,24 @@ public final class Main {
     }
   }
 
+  /**
+   * Helper method to run tests for the unused identifier analysis.
+   * 
+   * @param name Name of the test being run.
+   * @param program Program that contains the list of statements to be tested.
+   * @param expectedUnused The expected set of unused identifiers.
+   */
+  private static void runUnused(String name, List<Stmt> program, Set<String> expectedUnused) {
+    UnusedIdentifierAnalysis analysis = new UnusedIdentifierAnalysis();
+    Set<String> actualUnused = analysis.unused(program);
+
+    if (!actualUnused.equals(expectedUnused)) {
+      throw new AssertionError(
+          "Expected unused set " + expectedUnused + " but got " + actualUnused);
+    }
+
+    System.out.println("PASS " + name);
+  }
 
   /// TESTS ///
 
@@ -828,6 +853,144 @@ public final class Main {
         )
     );
 
+    program.add(main);
+    return program;
+  }
+
+  /**
+   * Program:
+   *
+   * fn main(): int {
+   *   x: int = 1;
+   *   return 0;
+   * }
+   *
+   * Checks the README example of an unused local variable.
+   */
+  public static List<Stmt> testUnusedLocalVar() {
+    List<Stmt> program = new ArrayList<>();
+
+    Stmt.Function main = new Stmt.Function(
+        "main",
+        VarType.INT,
+        List.of(),
+        List.of(
+            new Stmt.Var("x", VarType.INT, new Expr.Literal(1)),
+            new Stmt.Return(new Expr.Literal(0))
+        )
+    );
+
+    program.add(main);
+    return program;
+  }
+
+  /**
+   * Program:
+   *
+   * fn main(): int {
+   *   x: int = 1;
+   *   y: int = x + 1;
+   *   return 0;
+   * }
+   *
+   * Checks the README rule that recursive usage analysis is not required:
+   * x is considered used even though y is unused.
+   */
+  public static List<Stmt> testUnusedNoRecursiveUsage() {
+    List<Stmt> program = new ArrayList<>();
+
+    Stmt.Function main = new Stmt.Function(
+        "main",
+        VarType.INT,
+        List.of(),
+        List.of(
+            new Stmt.Var("x", VarType.INT, new Expr.Literal(1)),
+            new Stmt.Var(
+                "y",
+                VarType.INT,
+                new Expr.Binary(new Expr.Variable("x"), Operator.PLUS, new Expr.Literal(1))
+            ),
+            new Stmt.Return(new Expr.Literal(0))
+        )
+    );
+
+    program.add(main);
+    return program;
+  }
+
+  /**
+   * Program:
+   *
+   * fn main(): int {
+   *   x: int = 1;
+   *   {
+   *     x: int = 2;
+   *     output(x);
+   *   }
+   *   return 0;
+   * }
+   *
+   * Checks shadowing: the outer x is unused even though the inner x is used.
+   */
+  public static List<Stmt> testUnusedShadowingSameName() {
+    List<Stmt> program = new ArrayList<>();
+
+    Stmt.Block inner = new Stmt.Block(List.of(
+        new Stmt.Var("x", VarType.INT, new Expr.Literal(2)),
+        new Stmt.Expression(new Expr.Call("output", List.of(new Expr.Variable("x"))))
+    ));
+
+    Stmt.Function main = new Stmt.Function(
+        "main",
+        VarType.INT,
+        List.of(),
+        List.of(
+            new Stmt.Var("x", VarType.INT, new Expr.Literal(1)),
+            inner,
+            new Stmt.Return(new Expr.Literal(0))
+        )
+    );
+
+    program.add(main);
+    return program;
+  }
+
+  /**
+   * Program:
+   *
+   * fn f(): int {
+   *   return f();
+   * }
+   *
+   * fn main(): int {
+   *   return 0;
+   * }
+   *
+   * Checks that self-recursive reference does not count as usage,
+   * while global main is always considered used.
+   */
+  public static List<Stmt> testUnusedSelfRecursiveFunction() {
+    List<Stmt> program = new ArrayList<>();
+
+    Stmt.Function f = new Stmt.Function(
+        "f",
+        VarType.INT,
+        List.of(),
+        List.of(
+            new Stmt.Return(new Expr.Call("f", List.of()))
+        )
+    );
+
+    Stmt.Function main = new Stmt.Function(
+        "main",
+        VarType.INT,
+        List.of(),
+        List.of(
+            new Stmt.Return(new Expr.Literal(0))
+        )
+    );
+
+    program.add(f);
     program.add(main);
     return program;
   }
